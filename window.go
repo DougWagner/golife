@@ -44,11 +44,12 @@ func (w *Window) renderFrame() {
 	for i := uint16(0); i < w.size.row-1; i++ {
 		for j := uint16(0); j < w.size.col; j++ {
 			if w.cTree.Search(int32(j)+w.x, int32(i)+w.y) != nil {
-				buf.WriteString("X")
+				buf.WriteString("O")
 			} else {
 				buf.WriteString(" ")
 			}
 		}
+		buf.WriteString("\n")
 	}
 	fmt.Print(buf.String())
 	w.frames++

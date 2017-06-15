@@ -36,6 +36,48 @@ func (c *Cell) Pos() uint64 {
 	return Pos(c.x, c.y)
 }
 
+// Search is the recursive search for the position calculated
+// by Pos(x, y).
+func (c *Cell) Search(pos uint64) *Cell {
+	if pos < c.Pos() {
+		if c.left != nil {
+			return c.left.Search(pos)
+		}
+		return nil
+	} else if pos > c.Pos() {
+		if c.right != nil {
+			return c.right.Search(pos)
+		}
+		return nil
+	} else {
+		return c
+	}
+}
+
+// Insert recursively inserts a Cell into the CellTree underneath
+// the calling Cell.
+func (c *Cell) Insert(nc *Cell) {
+	if nc.Pos() < c.Pos() {
+		if c.left != nil {
+			c.left.Insert(nc)
+		} else {
+			c.left = nc
+			nc.parent = c
+			return
+		}
+	} else if nc.Pos() > c.Pos() {
+		if c.right != nil {
+			c.right.Insert(nc)
+		} else {
+			c.right = nc
+			nc.parent = c
+			return
+		}
+	} else {
+		panic("A node of the same value already exists")
+	}
+}
+
 // MinChild will return the minimum value node in the tree
 // beneath the Cell.
 func (c *Cell) MinChild() *Cell {
@@ -86,4 +128,40 @@ func (c *Cell) Remove() {
 // PrintCell prints the cell data to stdout
 func (c *Cell) PrintCell() {
 	fmt.Printf("x: %v\ty: %v\t Pos: %v\n", c.x, c.y, c.Pos())
+}
+
+// inOrderPrint is a recursive traversal of the CellTree
+// underneath the Cell c to print the tree in order.
+func (c *Cell) inOrderPrint() {
+	if c.left != nil {
+		c.left.inOrderPrint()
+	}
+	c.PrintCell()
+	if c.right != nil {
+		c.right.inOrderPrint()
+	}
+}
+
+// preOrderPrint is a recursive traversal of the CellTree
+// underneath the Cell c to print the tree in pre order.
+func (c *Cell) preOrderPrint() {
+	c.PrintCell()
+	if c.left != nil {
+		c.left.preOrderPrint()
+	}
+	if c.right != nil {
+		c.right.preOrderPrint()
+	}
+}
+
+// postOrderPrint is a recursive traversal of the CellTree
+// underneath the Cell c to print the tree in post order.
+func (c *Cell) postOrderPrint() {
+	if c.left != nil {
+		c.left.postOrderPrint()
+	}
+	if c.right != nil {
+		c.right.postOrderPrint()
+	}
+	c.PrintCell()
 }
