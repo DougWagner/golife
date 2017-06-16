@@ -92,8 +92,10 @@ func (c *Cell) Remove() {
 	if c.left == nil && c.right == nil {
 		if c.parent.left == c {
 			c.parent.left = nil
+			c.parent = nil
 		} else if c.parent.right == c {
 			c.parent.right = nil
+			c.parent = nil
 		} else {
 			panic("There is a major issue with your tree and you should feel bad")
 		}
@@ -125,9 +127,16 @@ func (c *Cell) Remove() {
 	}
 }
 
+// The following methods are for debugging purposes and should
+// never be called in normal execution of the program.
+
 // PrintCell prints the cell data to stdout
 func (c *Cell) PrintCell() {
-	fmt.Printf("x: %v\ty: %v\t Pos: %v\n", c.x, c.y, c.Pos())
+	if c.parent != nil {
+		fmt.Printf("x: %v\ty: %v\t Pos: %v\tParent: x: %v, y: %v\n", c.x, c.y, c.Pos(), c.parent.x, c.parent.y)
+	} else {
+		fmt.Printf("x: %v\ty: %v\t Pos: %v\tParent: nil\n", c.x, c.y, c.Pos())
+	}
 }
 
 // inOrderPrint is a recursive traversal of the CellTree

@@ -22,6 +22,9 @@ func initCellTree() *CellTree {
 // Search will find a Cell within the CellTree that corresponds to
 // the coordinates x and y.
 func (ct *CellTree) Search(x, y int32) *Cell {
+	if ct.root == nil {
+		return nil
+	}
 	pos := Pos(x, y)
 	return ct.root.Search(pos)
 }
@@ -41,7 +44,8 @@ func (ct *CellTree) Insert(x, y int32) {
 
 // Remove removes the target from the Cell. If the target
 // cell is root, the function will account for that.
-func (ct *CellTree) Remove(target *Cell) {
+func (ct *CellTree) Remove(x, y int32) {
+	target := ct.Search(x, y)
 	if target == ct.root {
 		tempRoot := NewCell(0, 0)
 		tempRoot.left = ct.root
@@ -59,6 +63,47 @@ func (ct *CellTree) Remove(target *Cell) {
 		ct.count--
 	}
 }
+
+// CheckNeighbors checks the tree to see if the 8 Cells around
+// x and y are active or not. If a cell is marked for death, it
+// is added to dch channel. If an empty cell is marked for birth,
+// it is added to nch. If an empty cell is neighboring an active
+// cell, it is added to ect CellTree so we can check if empty Cells
+// must be born.
+func (ct *CellTree) CheckNeighbors(x, y int32, dch, nch chan *Cell, dchCount, nchCount *int, ect *CellTree) {
+	xNb := []int32{x - 1, x, x + 1, x - 1, x + 1, x - 1, x, x + 1}
+	yNb := []int32{y - 1, y - 1, y - 1, y, y, y + 1, y + 1, y + 1}
+	var n int
+	currentCell := ct.Search(x, y)
+	if currentCell != nil { // cell is live, check if it must die
+		for i := 0; i < len(xNb); i++ {
+			if ct.Search(xNb[i], yNb[i]) != nil {
+				n++
+			} else {
+				if ect.Search(xNb[i], yNb[i]) == nil {
+					ect.Insert(xNb[i], yNb[i])
+				}
+			}
+		}
+		if n < 2 || n > 3 {
+			dch <- currentCell
+			*dchCount++
+		}
+	} else { // cell is not live, check if it must be born
+		for i := 0; i < len(xNb); i++ {
+			if ct.Search(xNb[i], yNb[i]) != nil {
+				n++
+			}
+		}
+		if n == 3 {
+			nch <- NewCell(x, y)
+			*nchCount++
+		}
+	}
+}
+
+// The following methods are for debugging purposes and should
+// never be called in normal execution of the program.
 
 // inOrderPrint is the initial caller for an in order traversal
 // of the CellTree for printing.

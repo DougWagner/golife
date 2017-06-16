@@ -26,12 +26,6 @@ func getWinSize() *winSize {
 	return win
 }
 
-// debugPrintWinSize prints the window size to stdout.
-func debugPrintWinSize() {
-	window := getWinSize()
-	fmt.Printf("col: %v\nrow: %v\nx: %v\ny: %v\n", window.col, window.row, window.x, window.y)
-}
-
 // resetCursorLoc moves the cursor to the top left corner
 // of the terminal.
 func resetCursorLoc() {
@@ -46,4 +40,13 @@ func hideCursor() {
 // showCursor shows the terminal cursor.
 func showCursor() {
 	fmt.Printf("\033[?25h")
+}
+
+// The following function is for debugging purposes and should
+// never be called in normal execution of the program.
+
+// debugPrintWinSize prints the window size to stdout.
+func debugPrintWinSize() {
+	window := getWinSize()
+	fmt.Printf("col: %v\nrow: %v\nx: %v\ny: %v\n", window.col, window.row, window.x, window.y)
 }
