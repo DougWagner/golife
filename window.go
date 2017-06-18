@@ -90,11 +90,7 @@ func (w *Window) TraverseAndUpdate(c *Cell, dch, nch chan *Cell, dchCount, nchCo
 	if c == nil {
 		return
 	}
-	if c.left != nil {
-		w.TraverseAndUpdate(c.left, dch, nch, dchCount, nchCount, ect)
-	}
+	w.TraverseAndUpdate(c.left, dch, nch, dchCount, nchCount, ect)
 	w.cTree.CheckNeighbors(c.x, c.y, dch, nch, dchCount, nchCount, ect)
-	if c.right != nil {
-		w.TraverseAndUpdate(c.right, dch, nch, dchCount, nchCount, ect)
-	}
+	w.TraverseAndUpdate(c.right, dch, nch, dchCount, nchCount, ect)
 }

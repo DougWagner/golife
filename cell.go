@@ -10,7 +10,7 @@ import (
 // the value doesn't become incorrect if x or y are
 // negative.
 func Pos(x, y int32) uint64 {
-	return math.MaxUint32*uint64(uint32(y)) + uint64(uint32(x))
+	return (math.MaxUint32+1)*uint64(uint32(y)) + uint64(uint32(x))
 }
 
 // Cell structure represents an active location on the
