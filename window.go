@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -25,6 +28,7 @@ func initWindow() *Window {
 	window := &Window{}
 	window.size = getWinSize()
 	window.cTree = initCellTree()
+	window.setupTerminateHandler()
 	buf := bytes.Buffer{}
 	hideCursor()
 	for i := uint16(0); i < window.size.row; i++ {
@@ -96,4 +100,19 @@ func (w *Window) TraverseAndUpdate(c *Cell, dch, nch chan *Cell, dchCount, nchCo
 	w.TraverseAndUpdate(c.left, dch, nch, dchCount, nchCount, ect)
 	w.cTree.CheckNeighbors(c.x, c.y, dch, nch, dchCount, nchCount, ect)
 	w.TraverseAndUpdate(c.right, dch, nch, dchCount, nchCount, ect)
+}
+
+// setupTerminateHandler captures the terminate signal
+// and ensures that the cursor reappears when the program
+// terminates.
+func (w *Window) setupTerminateHandler() {
+	sigChan := make(chan os.Signal, 2)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		w.renderFrame()
+		fmt.Printf("\n")
+		showCursor()
+		os.Exit(0)
+	}()
 }

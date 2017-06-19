@@ -1,13 +1,6 @@
 package main
 
-import (
-	"os"
-	"os/signal"
-	"syscall"
-)
-
 func main() {
-	setupTerminateHandler()
 	win := initWindow()
 
 	// spawner
@@ -64,18 +57,4 @@ func main() {
 	win.cTree.Insert(40, 8)
 
 	win.Life()
-}
-
-// setupTerminateHandler captures the terminate signal
-// and ensures that the cursor reappears when the program
-// terminates.
-func setupTerminateHandler() {
-	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-sigChan
-		resetCursorLoc()
-		showCursor()
-		os.Exit(0)
-	}()
 }
