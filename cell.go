@@ -6,7 +6,7 @@ import (
 )
 
 // Pos returns the linear index of the coordinates x and y.
-// x and y need to be cast to uint32 before uint64 so
+// x and y need to be cast to uint8 before uint16 so
 // the value doesn't become incorrect if x or y are
 // negative.
 func Pos(x, y int8) uint16 {
