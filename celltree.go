@@ -21,7 +21,7 @@ func initCellTree() *CellTree {
 
 // Search will find a Cell within the CellTree that corresponds to
 // the coordinates x and y.
-func (ct *CellTree) Search(x, y int32) *Cell {
+func (ct *CellTree) Search(x, y int8) *Cell {
 	if ct.root == nil {
 		return nil
 	}
@@ -32,7 +32,7 @@ func (ct *CellTree) Search(x, y int32) *Cell {
 // Insert will insert a new Cell into the CellTree. If the CellTree
 // is empty, then root will be assigned to the new Cell, otherwise
 // realInsert will take care of the bulk of the insertion process.
-func (ct *CellTree) Insert(x, y int32) {
+func (ct *CellTree) Insert(x, y int8) {
 	newCell := NewCell(x, y)
 	if ct.root == nil { // tree is empty
 		ct.root = newCell
@@ -44,7 +44,7 @@ func (ct *CellTree) Insert(x, y int32) {
 
 // Remove removes the target from the Cell. If the target
 // cell is root, the function will account for that.
-func (ct *CellTree) Remove(x, y int32) {
+func (ct *CellTree) Remove(x, y int8) {
 	target := ct.Search(x, y)
 	if target == ct.root {
 		tempRoot := NewCell(0, 0)
@@ -70,9 +70,9 @@ func (ct *CellTree) Remove(x, y int32) {
 // it is added to nch. If an empty cell is neighboring an active
 // cell, it is added to ect CellTree so we can check if empty Cells
 // must be born.
-func (ct *CellTree) CheckNeighbors(x, y int32, dch, nch chan *Cell, dchCount, nchCount *int, ect *CellTree) {
-	xNb := []int32{x - 1, x, x + 1, x - 1, x + 1, x - 1, x, x + 1}
-	yNb := []int32{y - 1, y - 1, y - 1, y, y, y + 1, y + 1, y + 1}
+func (ct *CellTree) CheckNeighbors(x, y int8, dch, nch chan *Cell, dchCount, nchCount *int, ect *CellTree) {
+	xNb := []int8{x - 1, x, x + 1, x - 1, x + 1, x - 1, x, x + 1}
+	yNb := []int8{y - 1, y - 1, y - 1, y, y, y + 1, y + 1, y + 1}
 	var n int
 	currentCell := ct.Search(x, y)
 	if currentCell != nil { // cell is live, check if it must die

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"time"
 )
 
 // Window structure contains the necessary information for the
@@ -12,7 +13,7 @@ import (
 // stores all currently active Cells in the window. frames is
 // the number of frames that have been rendered by the window.
 type Window struct {
-	x, y   int32
+	x, y   int8
 	size   *winSize
 	cTree  *CellTree
 	frames int
@@ -43,7 +44,7 @@ func (w *Window) renderFrame() {
 	buf := bytes.Buffer{}
 	for i := uint16(0); i < w.size.row; i++ {
 		for j := uint16(0); j < w.size.col; j++ {
-			if w.cTree.Search(int32(j)+w.x, int32(i)+w.y) != nil {
+			if w.cTree.Search(int8(j)+w.x, int8(i)+w.y) != nil {
 				buf.WriteString("O")
 			} else {
 				buf.WriteString(" ")
@@ -59,11 +60,13 @@ func (w *Window) renderFrame() {
 
 // Life is the main loop of Conway's Game of Life.
 func (w *Window) Life() {
+	ticker := time.Tick(100 * time.Millisecond)
 	for {
+		<-ticker
 		w.renderFrame()
-		ncChan := make(chan *Cell, 10000)
+		ncChan := make(chan *Cell, 65536)
 		var ncChanCount int
-		dcChan := make(chan *Cell, 10000)
+		dcChan := make(chan *Cell, 65536)
 		var dcChanCount int
 		ecTree := initCellTree()
 		w.TraverseAndUpdate(w.cTree.root, dcChan, ncChan, &dcChanCount, &ncChanCount, ecTree)

@@ -9,15 +9,15 @@ import (
 // x and y need to be cast to uint32 before uint64 so
 // the value doesn't become incorrect if x or y are
 // negative.
-func Pos(x, y int32) uint64 {
-	return (math.MaxUint32+1)*uint64(uint32(y)) + uint64(uint32(x))
+func Pos(x, y int8) uint16 {
+	return (math.MaxUint8+1)*uint16(uint8(y)) + uint16(uint8(x))
 }
 
 // Cell structure represents an active location on the
 // window grid. Each Cell represents a node in the CellTree
 // data structure.
 type Cell struct {
-	x, y   int32
+	x, y   int8
 	left   *Cell
 	right  *Cell
 	parent *Cell
@@ -26,19 +26,19 @@ type Cell struct {
 // NewCell initializes a new Cell with x and y coordinates
 // and sets the pointers to nil. Pointers will be updated
 // during the insertion and removal phase of the tree.
-func NewCell(x, y int32) *Cell {
+func NewCell(x, y int8) *Cell {
 	newCell := &Cell{x, y, nil, nil, nil}
 	return newCell
 }
 
 // Pos returns the linear index of the cell on the grid.
-func (c *Cell) Pos() uint64 {
+func (c *Cell) Pos() uint16 {
 	return Pos(c.x, c.y)
 }
 
 // Search is the recursive search for the position calculated
 // by Pos(x, y).
-func (c *Cell) Search(pos uint64) *Cell {
+func (c *Cell) Search(pos uint16) *Cell {
 	if pos < c.Pos() {
 		if c.left != nil {
 			return c.left.Search(pos)
