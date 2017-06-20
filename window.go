@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -28,6 +29,7 @@ func initWindow() *Window {
 	window := &Window{}
 	window.size = getWinSize()
 	window.cTree = initCellTree()
+	window.setupInputHandler()
 	window.setupTerminateHandler()
 	buf := bytes.Buffer{}
 	hideCursor()
@@ -102,6 +104,40 @@ func (w *Window) TraverseAndUpdate(c *Cell, dch, nch chan *Cell, dchCount, nchCo
 	w.TraverseAndUpdate(c.right, dch, nch, dchCount, nchCount, ect)
 }
 
+// setupInputHandler enables the ability to scroll up, down,
+// left, or right on the window.
+func (w *Window) setupInputHandler() {
+	// disable input buffering
+	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
+	// disable displaying of input characters on screen
+	exec.Command("stty", "-F", "/dev/tty", "-echo").Run()
+	b := make([]byte, 1)
+	go func() {
+		for {
+			// this feels really hacky for some reason...
+			os.Stdin.Read(b)
+			if b[0] != 27 {
+				continue
+			}
+			os.Stdin.Read(b)
+			if b[0] != 91 {
+				continue
+			}
+			os.Stdin.Read(b)
+			switch b[0] {
+			case 65: // up
+				w.y--
+			case 66: // down
+				w.y++
+			case 67: // right
+				w.x++
+			case 68: // left
+				w.x--
+			}
+		}
+	}()
+}
+
 // setupTerminateHandler captures the terminate signal
 // and ensures that the cursor reappears when the program
 // terminates.
@@ -112,6 +148,9 @@ func (w *Window) setupTerminateHandler() {
 		<-sigChan
 		w.renderFrame()
 		fmt.Printf("\n")
+		// undo stty commands ran in setupInputHandler
+		exec.Command("stty", "-F", "/dev/tty", "-cbreak").Run() // not sure if this one is needed
+		exec.Command("stty", "-F", "/dev/tty", "echo").Run()
 		showCursor()
 		os.Exit(0)
 	}()

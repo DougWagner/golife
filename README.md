@@ -7,7 +7,8 @@ The playing field is 256x256 because the coordinates are stored as 8-bit integer
 Changing the data type of the coordinates in the Cell stucture will increase the size of the playing field.
 
 GoLife runs Conway's Game of Life directly on the terminal window.
-The basic logic for the Game of Life has been implemented, however there are many features that I wish to add that have not been added yet.
+Use the arrow keys to scroll up, down, left, or right during execution of GoLife.
+GoLife is still a work in progress, and there are many features that I wish to add that have not been added yet.
 
 ## Installation
 
