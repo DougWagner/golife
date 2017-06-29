@@ -70,7 +70,7 @@ func (ct *CellTree) Remove(x, y int8) {
 // it is added to nch. If an empty cell is neighboring an active
 // cell, it is added to ect CellTree so we can check if empty Cells
 // must be born.
-func (ct *CellTree) CheckNeighbors(x, y int8, dch, nch chan *Cell, dchCount, nchCount *int, ect *CellTree) {
+func (ct *CellTree) CheckNeighbors(x, y int8, db, nb *[]*Cell, ect *CellTree) {
 	xNb := []int8{x - 1, x, x + 1, x - 1, x + 1, x - 1, x, x + 1}
 	yNb := []int8{y - 1, y - 1, y - 1, y, y, y + 1, y + 1, y + 1}
 	var n int
@@ -86,8 +86,7 @@ func (ct *CellTree) CheckNeighbors(x, y int8, dch, nch chan *Cell, dchCount, nch
 			}
 		}
 		if n < 2 || n > 3 {
-			dch <- currentCell
-			*dchCount++
+			*db = append(*db, currentCell)
 		}
 	} else { // cell is not live, check if it must be born
 		for i := 0; i < len(xNb); i++ {
@@ -96,8 +95,7 @@ func (ct *CellTree) CheckNeighbors(x, y int8, dch, nch chan *Cell, dchCount, nch
 			}
 		}
 		if n == 3 {
-			nch <- NewCell(x, y)
-			*nchCount++
+			*nb = append(*nb, NewCell(x, y))
 		}
 	}
 }

@@ -21,6 +21,8 @@ type Window struct {
 	size   *winSize
 	cTree  *CellTree
 	frames int
+	born   int
+	died   int
 }
 
 // initWindow will initialize a Window structure, and clear the
@@ -29,8 +31,6 @@ func initWindow() *Window {
 	window := &Window{}
 	window.size = getWinSize()
 	window.cTree = initCellTree()
-	window.setupInputHandler()
-	window.setupTerminateHandler()
 	buf := bytes.Buffer{}
 	hideCursor()
 	for i := uint16(0); i < window.size.row; i++ {
@@ -45,7 +45,7 @@ func initWindow() *Window {
 // renderFrame prints all currently active Cells in their
 // appropriate coordinate on the terminal.
 func (w *Window) renderFrame() {
-	resetCursorLoc()
+	resetCursorLoc(0, 0)
 	w.size = getWinSize()
 	buf := bytes.Buffer{}
 	for i := uint16(0); i < w.size.row; i++ {
@@ -61,52 +61,55 @@ func (w *Window) renderFrame() {
 		}
 	}
 	fmt.Print(buf.String())
-	w.frames++
 }
 
 // Life is the main loop of Conway's Game of Life.
 func (w *Window) Life() {
+	w.setupLifeInputHandler()
+	w.setupLifeTerminateHandler()
 	ticker := time.Tick(100 * time.Millisecond)
 	for {
 		<-ticker
 		w.renderFrame()
-		ncChan := make(chan *Cell, 65536)
-		var ncChanCount int
-		dcChan := make(chan *Cell, 65536)
-		var dcChanCount int
+		w.frames++
+		var ncBuff []*Cell
+		var dcBuff []*Cell
 		ecTree := initCellTree()
-		w.TraverseAndUpdate(w.cTree.root, dcChan, ncChan, &dcChanCount, &ncChanCount, ecTree)
-		w.TraverseAndUpdate(ecTree.root, dcChan, ncChan, &dcChanCount, &ncChanCount, ecTree)
-		for i := 0; i < dcChanCount; i++ {
-			// for some reason removing the cell directly from the channel breaks the tree...
-			// i don't think the pointers in the channel are updating correctly as things are
-			// removed, so i had to modify the CellTree remove method to include a search...
-			// try to fix later.
-			removedCell := <-dcChan
-			w.cTree.Remove(removedCell.x, removedCell.y)
+		w.TraverseAndUpdate(w.cTree.root, &dcBuff, &ncBuff, ecTree)
+		w.TraverseAndUpdate(ecTree.root, &dcBuff, &ncBuff, ecTree)
+		for _, v := range dcBuff {
+			// So the issue with removing nodes directly from the slice (previously a channel)
+			// lies in the else condition of the Cell Remove method. Since it just copies the
+			// values of the minRight node, the pointers stored in the slice will become invalid.
+			// Maybe fix this later for minimal optimization.
+			//w.cTree.Remove(v)
+			w.cTree.Remove(v.x, v.y)
 		}
-		for i := 0; i < ncChanCount; i++ {
-			newCell := <-ncChan
+		w.died += len(dcBuff)
+		for _, v := range ncBuff {
+			newCell := v
 			w.cTree.Insert(newCell.x, newCell.y)
 		}
+		w.born += len(ncBuff)
 	}
 }
 
 // TraverseAndUpdate will traverse the CellTree underneath
 // the Cell c. The function will call the CheckNeighbors
 // method to update the CellTree field in the window.
-func (w *Window) TraverseAndUpdate(c *Cell, dch, nch chan *Cell, dchCount, nchCount *int, ect *CellTree) {
+func (w *Window) TraverseAndUpdate(c *Cell, db, nb *[]*Cell, ect *CellTree) {
 	if c == nil {
 		return
 	}
-	w.TraverseAndUpdate(c.left, dch, nch, dchCount, nchCount, ect)
-	w.cTree.CheckNeighbors(c.x, c.y, dch, nch, dchCount, nchCount, ect)
-	w.TraverseAndUpdate(c.right, dch, nch, dchCount, nchCount, ect)
+	w.TraverseAndUpdate(c.left, db, nb, ect)
+	w.cTree.CheckNeighbors(c.x, c.y, db, nb, ect)
+	w.TraverseAndUpdate(c.right, db, nb, ect)
 }
 
-// setupInputHandler enables the ability to scroll up, down,
-// left, or right on the window.
-func (w *Window) setupInputHandler() {
+// setupLifeInputHandler enables the ability to scroll up, down,
+// left, or right on the window. Scrolling can use arrow keys,
+// or WASD keys.
+func (w *Window) setupLifeInputHandler() {
 	// disable input buffering
 	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
 	// disable displaying of input characters on screen
@@ -116,38 +119,50 @@ func (w *Window) setupInputHandler() {
 		for {
 			// this feels really hacky for some reason...
 			os.Stdin.Read(b)
-			if b[0] != 27 {
-				continue
-			}
-			os.Stdin.Read(b)
-			if b[0] != 91 {
-				continue
-			}
-			os.Stdin.Read(b)
 			switch b[0] {
-			case 65: // up
+			case 27:
+				os.Stdin.Read(b)
+				if b[0] != 91 {
+					continue
+				}
+				os.Stdin.Read(b)
+				switch b[0] {
+				case 65: // up
+					w.y--
+				case 66: // down
+					w.y++
+				case 67: // right
+					w.x++
+				case 68: // left
+					w.x--
+				}
+			case 119:
 				w.y--
-			case 66: // down
+			case 115:
 				w.y++
-			case 67: // right
+			case 100:
 				w.x++
-			case 68: // left
+			case 97:
 				w.x--
 			}
 		}
 	}()
 }
 
-// setupTerminateHandler captures the terminate signal
+// setupLifeTerminateHandler captures the terminate signal
 // and ensures that the cursor reappears when the program
 // terminates.
-func (w *Window) setupTerminateHandler() {
+func (w *Window) setupLifeTerminateHandler() {
 	sigChan := make(chan os.Signal, 2)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGTSTP, syscall.SIGQUIT)
 	go func() {
 		<-sigChan
 		w.renderFrame()
 		fmt.Printf("\n")
+		fmt.Printf("Number of generations progressed: %v\n", w.frames)
+		fmt.Printf("Number of living cells remaining: %v\n", w.cTree.count)
+		fmt.Printf("Total number of cells born: %v\n", w.born)
+		fmt.Printf("Total number of cells died: %v\n", w.died)
 		// undo stty commands ran in setupInputHandler
 		exec.Command("stty", "-F", "/dev/tty", "-cbreak").Run() // not sure if this one is needed
 		exec.Command("stty", "-F", "/dev/tty", "echo").Run()

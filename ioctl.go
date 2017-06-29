@@ -28,8 +28,8 @@ func getWinSize() *winSize {
 
 // resetCursorLoc moves the cursor to the top left corner
 // of the terminal.
-func resetCursorLoc() {
-	fmt.Printf("\033[0;0H")
+func resetCursorLoc(x, y int) {
+	fmt.Printf("\033[%v;%vH", x, y)
 }
 
 // hideCursor hides the termial cursor.
