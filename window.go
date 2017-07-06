@@ -4,35 +4,32 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
 )
 
 // Window structure contains the necessary information for the
-// current terminal window. x and y contain the current origin
-// point (top left of terminal) for the window. size contains
-// the current terminal size data. cTree is the CellTree that
-// stores all currently active Cells in the window. frames is
-// the number of frames that have been rendered by the window.
+// current terminal window.
 type Window struct {
-	x, y   int8
-	size   *winSize
-	cTree  *CellTree
-	frames int
-	born   int
-	died   int
+	x, y   int8      // window origin coordinates
+	cX, cY uint16    // cursor coordinates
+	size   *winSize  // window size structure
+	cTree  *CellTree // main cell tree
+	frames int       // total frames executed
+	born   int       // total cells born
+	died   int       // total cells died
 }
 
 // initWindow will initialize a Window structure, and clear the
 // currently visible terminal for use.
 func initWindow() *Window {
 	window := &Window{}
+	window.cX = 1
+	window.cY = 1
 	window.size = getWinSize()
 	window.cTree = initCellTree()
 	buf := bytes.Buffer{}
-	hideCursor()
 	for i := uint16(0); i < window.size.row; i++ {
 		for j := uint16(0); j < window.size.col; j++ {
 			buf.WriteString(fmt.Sprint(" "))
@@ -45,7 +42,7 @@ func initWindow() *Window {
 // renderFrame prints all currently active Cells in their
 // appropriate coordinate on the terminal.
 func (w *Window) renderFrame() {
-	resetCursorLoc(0, 0)
+	setCursorLoc(1, 1)
 	w.size = getWinSize()
 	buf := bytes.Buffer{}
 	for i := uint16(0); i < w.size.row; i++ {
@@ -67,6 +64,7 @@ func (w *Window) renderFrame() {
 func (w *Window) Life() {
 	w.setupLifeInputHandler()
 	w.setupLifeTerminateHandler()
+	hideCursor()
 	ticker := time.Tick(100 * time.Millisecond)
 	for {
 		<-ticker
@@ -110,10 +108,7 @@ func (w *Window) TraverseAndUpdate(c *Cell, db, nb *[]*Cell, ect *CellTree) {
 // left, or right on the window. Scrolling can use arrow keys,
 // or WASD keys.
 func (w *Window) setupLifeInputHandler() {
-	// disable input buffering
-	exec.Command("stty", "-F", "/dev/tty", "cbreak", "min", "1").Run()
-	// disable displaying of input characters on screen
-	exec.Command("stty", "-F", "/dev/tty", "-echo").Run()
+	stty()
 	b := make([]byte, 1)
 	go func() {
 		for {
@@ -163,10 +158,135 @@ func (w *Window) setupLifeTerminateHandler() {
 		fmt.Printf("Number of living cells remaining: %v\n", w.cTree.count)
 		fmt.Printf("Total number of cells born: %v\n", w.born)
 		fmt.Printf("Total number of cells died: %v\n", w.died)
-		// undo stty commands ran in setupInputHandler
-		exec.Command("stty", "-F", "/dev/tty", "-cbreak").Run() // not sure if this one is needed
-		exec.Command("stty", "-F", "/dev/tty", "echo").Run()
+		unstty()
 		showCursor()
 		os.Exit(0)
+	}()
+}
+
+// Edit sets up the Window as an editor to input cells to
+// use in Life.
+func (w *Window) Edit() {
+	if w.cTree.count != 0 {
+		w.renderFrame()
+	}
+	showCursor()
+	setCursorLoc(int(w.cX), int(w.cY))
+	inputChan := make(chan bool)
+	w.setupEditInputHandler(inputChan)
+	w.setupEditTerminateHandler()
+	//w.setupEditWinchangeHandler()
+	for {
+		<-inputChan
+		w.renderFrame()
+		setCursorLoc(int(w.cX), int(w.cY))
+	}
+}
+
+// setupEditInputHandler initializes the ability to move the
+// cursor and insert/remove nodes from the editor window.
+func (w *Window) setupEditInputHandler(inputChan chan bool) {
+	stty()
+	b := make([]byte, 1)
+	go func() {
+		for {
+			// this also feels hacky...
+			os.Stdin.Read(b)
+			switch b[0] {
+			case 27:
+				os.Stdin.Read(b)
+				if b[0] != 91 {
+					continue
+				}
+				os.Stdin.Read(b)
+				switch b[0] {
+				case 65: // up
+					w.decCY()
+				case 66: // down
+					w.incCY()
+				case 67: // right
+					w.incCX()
+				case 68: // left
+					w.decCX()
+				}
+			case 119:
+				w.decCY()
+			case 115:
+				w.incCY()
+			case 100:
+				w.incCX()
+			case 97:
+				w.decCX()
+			case 32:
+				if w.cTree.Search(w.x+int8(w.cX)-1, w.y+int8(w.cY)-1) == nil {
+					w.cTree.Insert(w.x+int8(w.cX)-1, w.y+int8(w.cY)-1)
+				} else {
+					w.cTree.Remove(w.x+int8(w.cX)-1, w.y+int8(w.cY)-1)
+				}
+			}
+			inputChan <- true
+		}
+	}()
+}
+
+// decCY decrements the window cursor on the Y axis.
+func (w *Window) decCY() {
+	if w.cY == 1 {
+		w.y--
+	} else {
+		w.cY--
+	}
+}
+
+// incCY increments the window cursor on the Y axis.
+func (w *Window) incCY() {
+	if w.cY == w.size.row {
+		w.y++
+	} else {
+		w.cY++
+	}
+}
+
+// incCX increments the window cursor on the X axis.
+func (w *Window) incCX() {
+	if w.cX == w.size.col {
+		w.x++
+	} else {
+		w.cX++
+	}
+}
+
+// decCX decrements the window cursor on the X axis.
+func (w *Window) decCX() {
+	if w.cX == 1 {
+		w.x--
+	} else {
+		w.cX--
+	}
+}
+
+// setupEditTerminateHandler will allow the editor to
+// gracefully exit on program termination.
+func (w *Window) setupEditTerminateHandler() {
+	sigChan := make(chan os.Signal, 2)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGTSTP, syscall.SIGQUIT)
+	go func() {
+		<-sigChan
+		setCursorLoc(0, int(w.size.row))
+		fmt.Printf("\n")
+		unstty()
+		os.Exit(0)
+	}()
+}
+
+// setupEditWinchangeHandler doesn't work very well right now
+// and should be ignored for the time being.
+func (w *Window) setupEditWinchangeHandler() {
+	// TODO: make this function work better
+	winSigChan := make(chan os.Signal, 2)
+	signal.Notify(winSigChan, syscall.SIGWINCH)
+	go func() {
+		<-winSigChan
+		w.renderFrame()
 	}()
 }

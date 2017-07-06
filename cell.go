@@ -127,6 +127,18 @@ func (c *Cell) Remove() {
 	}
 }
 
+// preOrder is a pre order traversal that appends the coordinates
+// to a byte slice.
+func (c *Cell) preOrder(buff *[]byte) {
+	*buff = append(*buff, byte(c.x), byte(c.y))
+	if c.left != nil {
+		c.left.preOrder(buff)
+	}
+	if c.right != nil {
+		c.right.preOrder(buff)
+	}
+}
+
 // The following methods are for debugging purposes and should
 // never be called in normal execution of the program.
 

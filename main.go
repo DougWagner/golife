@@ -1,8 +1,34 @@
 package main
 
-func main() {
-	win := initWindow()
+import (
+	"fmt"
+	"os"
+)
 
+func printUsage() {
+	fmt.Println("Usage: golife [run | edit]")
+	os.Exit(64)
+}
+
+func main() {
+	switch len(os.Args) {
+	case 1:
+		runLife()
+	case 2:
+		if os.Args[1] == "run" {
+			runLife()
+		} else if os.Args[1] == "edit" {
+			runEdit()
+		} else {
+			printUsage()
+		}
+	default:
+		printUsage()
+	}
+}
+
+func runLife() {
+	win := initWindow()
 	// spawner
 	win.cTree.Insert(70, 25)
 	win.cTree.Insert(70, 26)
@@ -57,4 +83,9 @@ func main() {
 	win.cTree.Insert(40, 8)
 
 	win.Life()
+}
+
+func runEdit() {
+	win := initWindow()
+	win.Edit()
 }

@@ -17,3 +17,7 @@ To install GoLife, simply use the `go get` command.
 ```
 go get github.com/DougWagner/golife
 ```
+
+GoLife works on Linux systems (developed and tested on Ubuntu).
+It builds and runs on MacOS systems, however there are some issues.
+It does not compile on Windows systems.

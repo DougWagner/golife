@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"io/ioutil"
+)
 
 // CellTree structure is the main structure for the bst
 // of active cells on the window grid.
@@ -16,6 +19,25 @@ func initCellTree() *CellTree {
 	ct := &CellTree{}
 	ct.root = nil
 	ct.count = 0
+	return ct
+}
+
+// initFromFile creates a new CellTree and initializes all of the
+// nodes in the tree from a file created by the WriteToFile method.
+func initFromFile(fname string) *CellTree {
+	file, err := ioutil.ReadFile(fname)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	if len(file)%2 != 0 {
+		fmt.Println("File length not even")
+		return nil
+	}
+	ct := initCellTree()
+	for i := 0; i < len(file)/2; i++ {
+		ct.Insert(int8(file[i*2]), int8(file[i*2+1]))
+	}
 	return ct
 }
 
@@ -98,6 +120,19 @@ func (ct *CellTree) CheckNeighbors(x, y int8, db, nb *[]*Cell, ect *CellTree) {
 			*nb = append(*nb, NewCell(x, y))
 		}
 	}
+}
+
+// WriteToFile writes the CellTree to a binary file with a pre
+// order traversal. When the file is read back into a new tree
+// using the initFromFile function, the tree structure should
+// be the same.
+func (ct *CellTree) WriteToFile(fname string) {
+	if ct.count == 0 {
+		return
+	}
+	buff := []byte{} // make buffer with minimum space to store 1 cell
+	ct.root.preOrder(&buff)
+	ioutil.WriteFile(fname, buff, 0664)
 }
 
 // The following methods are for debugging purposes and should
